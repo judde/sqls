@@ -15,10 +15,16 @@ CREATE PROCEDURE dbo.STP_ATUALIZA_TB_BASE_WMS_TEMP
 AS
 BEGIN
     SET NOCOUNT ON;
+
+
+	-- Variável para controle de mensagens da procedure
+	DECLARE @Mensagem NVARCHAR(500)
+	SET @Mensagem = ''
+
     BEGIN TRY
         BEGIN TRANSACTION;
 
-        DELETE DBO_GESTAO_LOGISTICA.DBO.TB_BASE_WMS_TEMP;
+        TRUNCATE TABLE DBO_GESTAO_LOGISTICA.DBO.TB_BASE_WMS_TEMP;
 
         INSERT INTO DBO_GESTAO_LOGISTICA.DBO.TB_BASE_WMS_TEMP
         SELECT EST.ARECOD,
@@ -53,10 +59,40 @@ BEGIN
 
         COMMIT TRANSACTION;
     END TRY
-     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
 
-        SELECT 'NOK TEMP WMS' AS MESSAGE;
-    END CATCH;
-END
+     BEGIN CATCH
+
+        SET @Mensagem = ERROR_MESSAGE()
+
+         IF @@TRANCOUNT > 0
+         BEGIN
+              ROLLBACK TRANSACTION;
+        END
+
+       GOTO ERROR
+        
+		END CATCH;
+
+		   RETURN 1
+
+		ERROR:
+
+		IF @@TRANCOUNT > 0
+
+		BEGIN
+		   ROLLBACK TRANSACTION
+		END
+
+		IF @Mensagem <> ''
+		BEGIN
+		   SELECT Mensagem = 'NOK TEMP WMS. '+@Mensagem
+		END
+
+		ELSE
+
+		BEGIN
+			SELECT Mensagem = 'OK TEMP WMS.'
+		END
+		RETURN 0
+
+	END
